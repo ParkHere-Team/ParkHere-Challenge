@@ -116,6 +116,7 @@ Once you’re done with the implementation, kindly invite our colleagues to revi
 * andac.kurun@park-here.eu
 * jakob.mezger@park-here.eu
 * mirzet.brkic@park-here.eu
+* massimiliano.gerardi@park-here.eu
 
 Please make sure you include a high quality image of your drawing within the solution or provide a link if you’re using an online tool.
 
