@@ -1,0 +1,77 @@
+openapi: 3.0.0
+info:
+  title: Reservation service API
+  version: 1.0.0
+tags:
+  - name: Reservation
+paths:
+  /api/parking-lots/{parking-lot-id}/reservations:
+    post:
+      tags:
+        - Reservation
+      operationId: createReservation
+      summary: Create a reservation for a parking spot
+      parameters:
+        - name: parking-lot-id
+          in: path
+          required: true
+          description: The ID of the parking lot
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservationRequest'
+      responses:
+        '200':
+          description: Successful reservation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+components:
+  schemas:
+    ReservationRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: email
+          example: "john@park-here.eu"
+        startTimestamp:
+          type: integer
+          format: int64
+          example: 1737586800000
+        endTimestamp:
+          type: integer
+          format: int64
+          example: 1737627502000
+      required:
+        - userId
+        - startTimestamp
+        - endTimestamp
+    
+    ReservationResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 123
+        spotId:
+          type: integer
+          example: 1
+        startTimestamp:
+          type: integer
+          format: int64
+          example: 1737586800000
+        endTimestamp:
+          type: integer
+          format: int64
+          example: 1737627502000
+      required:
+        - id
+        - spotId
+        - startTimestamp
+        - endTimestamp

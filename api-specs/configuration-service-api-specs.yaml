@@ -1,0 +1,46 @@
+openapi: 3.0.0
+info:
+  title: Configuration service API
+  version: 1.0.0
+tags:
+   - name: configuration
+paths:
+  /api/parking-lots/{parking-lot-id}:
+    get:
+      tags:
+        - configuration
+      summary: Get parking spots for a specific parking lot
+      operationId: getParkingSpotsByLot
+      parameters:
+        - name: parking-lot-id
+          in: path
+          required: true
+          description: The ID of the parking lot
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response with a list of parking spots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ParkingSpot'
+components:
+  schemas:
+    ParkingSpot:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "spot1"
+        priority:
+          type: integer
+          example: 1
+      required:
+        - id
+        - priority
