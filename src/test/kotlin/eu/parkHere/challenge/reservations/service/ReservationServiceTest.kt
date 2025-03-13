@@ -4,6 +4,7 @@ import eu.parkHere.challenge.model.ParkingSpot
 import eu.parkHere.challenge.model.ReservationRequest
 import eu.parkHere.challenge.reservations.entity.Reservation
 import eu.parkHere.challenge.reservations.repository.ReservationRepository
+import eu.parkHere.challenge.utils.millisecondToInstant
 import io.mockk.every
 import io.mockk.impl.annotations.InjectMockKs
 import io.mockk.impl.annotations.MockK
@@ -25,111 +26,83 @@ class ReservationServiceTest {
 
     @InjectMockKs
     private lateinit var service: ReservationService
+
     private val testSpots = listOf(
-        ParkingSpot(id=1, name = "spot1", priority = 3),
-        ParkingSpot(id=2, name = "spot2", priority = 2),
-        ParkingSpot(id=3, name = "spot3", priority = 1)
+        ParkingSpot(id = 1, name = "spot1", priority = 3),
+        ParkingSpot(id = 2, name = "spot2", priority = 2),
+        ParkingSpot(id = 3, name = "spot3", priority = 1)
     )
 
     @Test
     fun `throw when end time is smaller than start time`() {
-        val request = ReservationRequest(
-            userId = "user 1",
+        val request = createReservationRequest(
             startTimestamp = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
-            endTimestamp = LocalDateTime.now().minusHours(1).toEpochSecond(ZoneOffset.UTC))
+            endTimestamp = LocalDateTime.now().minusHours(1).toEpochSecond(ZoneOffset.UTC)
+        )
 
-        assertFailsWith<ResponseStatusException> (
+        assertFailsWith<ResponseStatusException>(
             message = "End time must be after start time",
-            block = {
-                service.createReservation(1, testSpots, request)
-            }
+            block = { service.createReservation(1, testSpots, request) }
         )
     }
 
     @Test
     fun `throw when start time has already passed`() {
-        val request = ReservationRequest(
-            userId = "user 1",
+        val request = createReservationRequest(
             startTimestamp = LocalDateTime.now().minusHours(1).toEpochSecond(ZoneOffset.UTC),
-            endTimestamp = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC))
+            endTimestamp = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)
+        )
 
-        assertFailsWith<ResponseStatusException> (
+        assertFailsWith<ResponseStatusException>(
             message = "Cannot reserve time in the past",
-            block = {
-                service.createReservation(1, testSpots, request)
-            }
+            block = { service.createReservation(1, testSpots, request) }
         )
     }
 
     @Test
     fun `throw when reservation duration is too long`() {
-        val request = ReservationRequest(
-            userId = "user 1",
+        val request = createReservationRequest(
             startTimestamp = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
-            endTimestamp = LocalDateTime.now().plusWeeks(2).toEpochSecond(ZoneOffset.UTC))
+            endTimestamp = LocalDateTime.now().plusWeeks(2).toEpochSecond(ZoneOffset.UTC)
+        )
 
-        assertFailsWith<ResponseStatusException> (
+        assertFailsWith<ResponseStatusException>(
             message = "Reservation exceeds maximum allowed duration of 1 week",
-            block = {
-                service.createReservation(1, testSpots, request)
-            }
+            block = { service.createReservation(1, testSpots, request) }
         )
     }
 
     @Test
     fun `throw if user has another reservation for the requested time frame`() {
-        val request = ReservationRequest(
-            userId = "user 1",
+        val request = createReservationRequest(
             startTimestamp = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
-            endTimestamp = LocalDateTime.now().plusHours(2).toEpochSecond(ZoneOffset.UTC))
+            endTimestamp = LocalDateTime.now().plusHours(2).toEpochSecond(ZoneOffset.UTC)
+        )
+
         every {
             reservationRepository.existsByUserIdAndTimeOverlap(
                 "user 1",
-                request.startTimestamp,
-                request.endTimestamp
+                millisecondToInstant(request.startTimestamp),
+                millisecondToInstant(request.endTimestamp)
             )
         } returns true
 
-        assertFailsWith<ResponseStatusException> (
+        assertFailsWith<ResponseStatusException>(
             message = "User already has a reservation during this time, please try a different time slot",
-            block = {
-                service.createReservation(1, testSpots, request)
-            }
+            block = { service.createReservation(1, testSpots, request) }
         )
     }
 
     @Test
     fun `book reservation when first priority is available`() {
-        val request = ReservationRequest(
-            userId = "user 1",
+        val request = createReservationRequest(
             startTimestamp = LocalDateTime.now().plusHours(10).toInstant(ZoneOffset.UTC).toEpochMilli(),
-            endTimestamp = LocalDateTime.now().plusHours(18).toInstant(ZoneOffset.UTC).toEpochMilli())
-        every {
-            reservationRepository.existsByUserIdAndTimeOverlap(
-                "user 1",
-                request.startTimestamp,
-                request.endTimestamp
-            )
-        } returns false
-
-        (1..3).forEach {
-            every {
-                reservationRepository.existsBySpotIdAndTimeOverlap(
-                    eq(it),
-                    request.startTimestamp,
-                    request.endTimestamp
-                )
-            } returns false
-        }
-
-        every { reservationRepository.save(any()) } returns Reservation(
-            id = 1,
-            startTimestamp = Instant.ofEpochMilli(request.startTimestamp),
-            endTimestamp = Instant.ofEpochMilli(request.startTimestamp),
-            spotId = 3,
-            userId = "user 1",
-            parkingLotId = 1
+            endTimestamp = LocalDateTime.now().plusHours(18).toInstant(ZoneOffset.UTC).toEpochMilli()
         )
+
+        mockRepositoryForAvailableSpots(request)
+
+        every { reservationRepository.save(any()) } returns createReservation(request, 3)
 
         val result = service.createReservation(1, testSpots, request)
         assertThat(result.spotId).isEqualTo(3)
@@ -138,44 +111,14 @@ class ReservationServiceTest {
 
     @Test
     fun `book reservation with next priority when first priority is unavailable`() {
-        val request = ReservationRequest(
-            userId = "user 1",
+        val request = createReservationRequest(
             startTimestamp = LocalDateTime.now().plusHours(10).toInstant(ZoneOffset.UTC).toEpochMilli(),
-            endTimestamp = LocalDateTime.now().plusHours(18).toInstant(ZoneOffset.UTC).toEpochMilli())
-        every {
-            reservationRepository.existsByUserIdAndTimeOverlap(
-                "user 1",
-                request.startTimestamp,
-                request.endTimestamp
-            )
-        } returns false
-
-        (1..2).forEach {
-            every {
-                reservationRepository.existsBySpotIdAndTimeOverlap(
-                    eq(it),
-                    request.startTimestamp,
-                    request.endTimestamp
-                )
-            } returns false
-        }
-
-        every {
-            reservationRepository.existsBySpotIdAndTimeOverlap(
-                eq(3),
-                request.startTimestamp,
-                request.endTimestamp
-            )
-        } returns true
-
-        every { reservationRepository.save(any()) } returns Reservation(
-            id = 1,
-            startTimestamp = Instant.ofEpochMilli(request.startTimestamp),
-            endTimestamp = Instant.ofEpochMilli(request.startTimestamp),
-            spotId = 2,
-            userId = "user 1",
-            parkingLotId = 1
+            endTimestamp = LocalDateTime.now().plusHours(18).toInstant(ZoneOffset.UTC).toEpochMilli()
         )
+
+        mockRepositoryForUnavailableFirstSpot(request)
+
+        every { reservationRepository.save(any()) } returns createReservation(request, 2)
 
         val result = service.createReservation(1, testSpots, request)
         assertThat(result.spotId).isEqualTo(2)
@@ -185,53 +128,32 @@ class ReservationServiceTest {
     @Test
     fun `book reservation multiple time by same user`() {
         every {
-            reservationRepository.existsByUserIdAndTimeOverlap(
-                "user 1",
-                any(),
-                any()
-            )
+            reservationRepository.existsByUserIdAndTimeOverlap("user 1", any(), any())
         } returns false
+
         (1..3).forEach {
             every {
-                reservationRepository.existsBySpotIdAndTimeOverlap(
-                    eq(it),
-                    any(),
-                    any()
-                )
+                reservationRepository.existsBySpotIdAndTimeOverlap(eq(it), any(), any())
             } returns false
         }
 
-        val request1 = ReservationRequest(
-            userId = "user 1",
+        val request1 = createReservationRequest(
             startTimestamp = LocalDateTime.now().plusHours(10).toInstant(ZoneOffset.UTC).toEpochMilli(),
-            endTimestamp = LocalDateTime.now().plusHours(18).toInstant(ZoneOffset.UTC).toEpochMilli())
-
-        every { reservationRepository.save(any()) } returns Reservation(
-            id = 1,
-            startTimestamp = Instant.ofEpochMilli(request1.startTimestamp),
-            endTimestamp = Instant.ofEpochMilli(request1.endTimestamp),
-            spotId = 3,
-            userId = "user 1",
-            parkingLotId = 1
+            endTimestamp = LocalDateTime.now().plusHours(18).toInstant(ZoneOffset.UTC).toEpochMilli()
         )
+
+        every { reservationRepository.save(any()) } returns createReservation(request1, 3)
 
         val result1 = service.createReservation(1, testSpots, request1)
         assertThat(result1.spotId).isEqualTo(3)
         verify { reservationRepository.save(match { it.spotId == 3 }) }
 
-        val request2 = ReservationRequest(
-            userId = "user 1",
+        val request2 = createReservationRequest(
             startTimestamp = LocalDateTime.now().plusHours(20).toInstant(ZoneOffset.UTC).toEpochMilli(),
-            endTimestamp = LocalDateTime.now().plusHours(28).toInstant(ZoneOffset.UTC).toEpochMilli())
-
-        every { reservationRepository.save(any()) } returns Reservation(
-            id = 1,
-            startTimestamp = Instant.ofEpochMilli(request2.startTimestamp),
-            endTimestamp = Instant.ofEpochMilli(request2.endTimestamp),
-            spotId = 3,
-            userId = "user 1",
-            parkingLotId = 1
+            endTimestamp = LocalDateTime.now().plusHours(28).toInstant(ZoneOffset.UTC).toEpochMilli()
         )
+
+        every { reservationRepository.save(any()) } returns createReservation(request2, 3)
 
         val result2 = service.createReservation(1, testSpots, request2)
         assertThat(result2.spotId).isEqualTo(3)
@@ -240,16 +162,16 @@ class ReservationServiceTest {
 
     @Test
     fun `throw exception when no slots are available`() {
-        val request = ReservationRequest(
-            userId = "user 1",
+        val request = createReservationRequest(
             startTimestamp = LocalDateTime.now().plusHours(20).toInstant(ZoneOffset.UTC).toEpochMilli(),
-            endTimestamp = LocalDateTime.now().plusHours(28).toInstant(ZoneOffset.UTC).toEpochMilli())
+            endTimestamp = LocalDateTime.now().plusHours(28).toInstant(ZoneOffset.UTC).toEpochMilli()
+        )
 
         every {
             reservationRepository.existsByUserIdAndTimeOverlap(
                 "user 1",
-                request.startTimestamp,
-                request.endTimestamp
+                millisecondToInstant(request.startTimestamp),
+                millisecondToInstant(request.endTimestamp)
             )
         } returns false
 
@@ -257,17 +179,82 @@ class ReservationServiceTest {
             every {
                 reservationRepository.existsBySpotIdAndTimeOverlap(
                     eq(it),
-                    request.startTimestamp,
-                    request.endTimestamp
+                    millisecondToInstant(request.startTimestamp),
+                    millisecondToInstant(request.endTimestamp)
                 )
             } returns true
         }
 
-        assertFailsWith<ResponseStatusException> (
+        assertFailsWith<ResponseStatusException>(
             message = "Unfortunately, No spots are available",
-            block = {
-                service.createReservation(1, testSpots, request)
-            }
+            block = { service.createReservation(1, testSpots, request) }
         )
+    }
+
+    private fun createReservationRequest(startTimestamp: Long, endTimestamp: Long): ReservationRequest {
+        return ReservationRequest(
+            userId = "user 1",
+            startTimestamp = startTimestamp,
+            endTimestamp = endTimestamp
+        )
+    }
+
+    private fun createReservation(request: ReservationRequest, spotId: Int): Reservation {
+        return Reservation(
+            id = 1,
+            startTimestamp = Instant.ofEpochMilli(request.startTimestamp),
+            endTimestamp = Instant.ofEpochMilli(request.endTimestamp),
+            spotId = spotId,
+            userId = request.userId,
+            parkingLotId = 1
+        )
+    }
+
+    private fun mockRepositoryForAvailableSpots(request: ReservationRequest) {
+        every {
+            reservationRepository.existsByUserIdAndTimeOverlap(
+                "user 1",
+                millisecondToInstant(request.startTimestamp),
+                millisecondToInstant(request.endTimestamp)
+            )
+        } returns false
+
+        (1..3).forEach {
+            every {
+                reservationRepository.existsBySpotIdAndTimeOverlap(
+                    eq(it),
+                    millisecondToInstant(request.startTimestamp),
+                    millisecondToInstant(request.endTimestamp)
+                )
+            } returns false
+        }
+    }
+
+    private fun mockRepositoryForUnavailableFirstSpot(request: ReservationRequest) {
+        every {
+            reservationRepository.existsByUserIdAndTimeOverlap(
+                "user 1",
+                millisecondToInstant(request.startTimestamp),
+                millisecondToInstant(request.endTimestamp)
+            )
+        } returns false
+
+        (1..2).forEach {
+            every {
+                reservationRepository.existsBySpotIdAndTimeOverlap(
+                    eq(it),
+                    millisecondToInstant(request.startTimestamp),
+                    millisecondToInstant(request.endTimestamp)
+                )
+            } returns false
+        }
+
+        every {
+            reservationRepository.existsBySpotIdAndTimeOverlap(
+                eq(3),
+                millisecondToInstant(request.startTimestamp),
+                millisecondToInstant(request.endTimestamp)
+            )
+        } returns true
     }
 }
