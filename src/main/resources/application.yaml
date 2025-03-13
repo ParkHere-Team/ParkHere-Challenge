@@ -8,3 +8,6 @@ spring:
     url: jdbc:postgresql://localhost:5432/reservation-database
     username: k4tfXN9OAGFXWE
     password: XrKO6bek6ojnBM
+    
+configuration-service:
+  endpoint: ${CONFIGURATION_SERVICE_ENDPOINT:http://localhost:4010}
