@@ -4,23 +4,33 @@ import eu.parkHere.challenge.model.ParkingSpot
 import eu.parkHere.challenge.model.ReservationRequest
 import eu.parkHere.challenge.model.ReservationResponse
 import eu.parkHere.challenge.reservations.entity.Reservation
+import eu.parkHere.challenge.reservations.exceptions.*
 import eu.parkHere.challenge.reservations.repository.ReservationRepository
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import org.springframework.web.server.ResponseStatusException
 import java.time.Instant
 
 @Service
 class ReservationService(
     private val reservationRepository: ReservationRepository
 ) {
+    companion object {
+        private const val MAX_RESERVATION_DURATION = 7 * 24 * 60 * 60 * 1000L // 1 week
+    }
+    /**
+     * Creates a reservation for a parking spot.
+     *
+     * @param parkingLotId The ID of the parking lot.
+     * @param spots The list of available parking spots.
+     * @param reservationRequest The reservation request details.
+     * @return The reservation response with reservation id.
+     */
     @Transactional
     fun createReservation(parkingLotId: Int, spots: List<ParkingSpot>, reservationRequest: ReservationRequest): ReservationResponse {
         validateTimeRange(reservationRequest.startTimestamp, reservationRequest.endTimestamp)
         validateUserAvailability(reservationRequest.userId, reservationRequest.startTimestamp, reservationRequest.endTimestamp)
         val availableSpot = findAvailableSpot(spots, reservationRequest.startTimestamp, reservationRequest.endTimestamp)
-            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Unfortunately, No spots are available")
+            ?: throw NoSpotsAvailableException()
 
         val savedReservation = reservationRepository.save(
             Reservation(
@@ -36,22 +46,21 @@ class ReservationService(
 
     private fun validateTimeRange(startTimestamp: Long, endTimestamp: Long) {
         val now = System.currentTimeMillis()
-        val MAX_RESERVATION_DURATION = 7 * 24 * 60 * 60 * 1000L // 1 week
         when {
             startTimestamp >= endTimestamp ->
-                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "End time must be after start time")
+                throw InvalidTimeRangeException()
 
             startTimestamp < now ->
-                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot reserve time in the past")
+                throw PastReservationException()
 
             endTimestamp - startTimestamp > MAX_RESERVATION_DURATION ->
-                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Reservation exceeds maximum allowed duration")
+                throw ExceedsDurationException()
         }
     }
 
     private fun validateUserAvailability(userId: String, startTimestamp: Long, endTimestamp: Long) {
         if (reservationRepository.existsByUserIdAndTimeOverlap(userId, startTimestamp, endTimestamp)) {
-            throw ResponseStatusException(HttpStatus.CONFLICT, "User already has a reservation during this time, please try a different time slot")
+            throw UserConflictException()
         }
     }
 

@@ -69,7 +69,7 @@ class ReservationServiceTest {
             endTimestamp = LocalDateTime.now().plusWeeks(2).toEpochSecond(ZoneOffset.UTC))
 
         assertFailsWith<ResponseStatusException> (
-            message = "Reservation exceeds maximum allowed duration",
+            message = "Reservation exceeds maximum allowed duration of 1 week",
             block = {
                 service.createReservation(1, testSpots, request)
             }
