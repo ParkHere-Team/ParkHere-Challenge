@@ -28,8 +28,10 @@ class ReservationService(
     @Transactional
     fun createReservation(parkingLotId: Int, spots: List<ParkingSpot>, reservationRequest: ReservationRequest): ReservationResponse {
         validateTimeRange(reservationRequest.startTimestamp, reservationRequest.endTimestamp)
-        validateUserAvailability(reservationRequest.userId, reservationRequest.startTimestamp, reservationRequest.endTimestamp)
-        val availableSpot = findAvailableSpot(spots, reservationRequest.startTimestamp, reservationRequest.endTimestamp)
+        val startTimeAsInstant = Instant.ofEpochMilli(reservationRequest.startTimestamp)
+        val endTimeAsInstant = Instant.ofEpochMilli(reservationRequest.endTimestamp)
+        validateUserAvailability(reservationRequest.userId, startTimeAsInstant, endTimeAsInstant)
+        val availableSpot = findAvailableSpot(spots, startTimeAsInstant, endTimeAsInstant)
             ?: throw NoSpotsAvailableException()
 
         val savedReservation = reservationRepository.save(
@@ -58,7 +60,7 @@ class ReservationService(
         }
     }
 
-    private fun validateUserAvailability(userId: String, startTimestamp: Long, endTimestamp: Long) {
+    private fun validateUserAvailability(userId: String, startTimestamp: Instant, endTimestamp: Instant) {
         if (reservationRepository.existsByUserIdAndTimeOverlap(userId, startTimestamp, endTimestamp)) {
             throw UserConflictException()
         }
@@ -66,8 +68,8 @@ class ReservationService(
 
     private fun findAvailableSpot(
         spots: List<ParkingSpot>,
-        start: Long,
-        end: Long
+        start: Instant,
+        end: Instant
     ): ParkingSpot? {
         return spots.sortedBy { it.priority }
             .firstOrNull { spot ->

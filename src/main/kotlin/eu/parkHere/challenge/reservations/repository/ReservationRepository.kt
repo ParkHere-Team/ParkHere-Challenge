@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
+import java.time.Instant
 
 @Repository
 interface ReservationRepository: JpaRepository<Reservation, Long> {
@@ -17,8 +18,8 @@ interface ReservationRepository: JpaRepository<Reservation, Long> {
     """)
     fun existsByUserIdAndTimeOverlap(
         @Param("userId") userId: String,
-        @Param("start") start: Long,
-        @Param("end") end: Long
+        @Param("start") start: Instant,
+        @Param("end") end: Instant
     ): Boolean
 
     @Query("""
@@ -30,7 +31,7 @@ interface ReservationRepository: JpaRepository<Reservation, Long> {
     """)
     fun existsBySpotIdAndTimeOverlap(
         @Param("spotId") spotId: Int,
-        @Param("start") start: Long,
-        @Param("end") end: Long
+        @Param("start") start: Instant,
+        @Param("end") end: Instant
     ): Boolean
 }
