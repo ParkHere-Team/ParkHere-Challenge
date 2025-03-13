@@ -12,7 +12,6 @@ import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.ArgumentMatchers.any
 import org.springframework.web.server.ResponseStatusException
 import java.time.Instant
 import java.time.LocalDateTime
@@ -33,7 +32,7 @@ class ReservationServiceTest {
     )
 
     @Test
-    fun shouldThrowExceptionWhenEndTimeIsGreaterThanStartTime() {
+    fun `throw when end time is smaller than start time`() {
         val request = ReservationRequest(
             userId = "user 1",
             startTimestamp = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
@@ -48,7 +47,7 @@ class ReservationServiceTest {
     }
 
     @Test
-    fun shouldThrowExceptionWhenStartTimeIsInThePast() {
+    fun `throw when start time has already passed`() {
         val request = ReservationRequest(
             userId = "user 1",
             startTimestamp = LocalDateTime.now().minusHours(1).toEpochSecond(ZoneOffset.UTC),
@@ -63,7 +62,7 @@ class ReservationServiceTest {
     }
 
     @Test
-    fun shouldThrowExceptionWhenDurationIsTooLong() {
+    fun `throw when reservation duration is too long`() {
         val request = ReservationRequest(
             userId = "user 1",
             startTimestamp = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
@@ -78,7 +77,7 @@ class ReservationServiceTest {
     }
 
     @Test
-    fun shouldThrowExceptionWhenUserAlreadyHasAReservationForTheRequestedTimeframe() {
+    fun `throw if user has another reservation for the requested time frame`() {
         val request = ReservationRequest(
             userId = "user 1",
             startTimestamp = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
@@ -100,7 +99,7 @@ class ReservationServiceTest {
     }
 
     @Test
-    fun canBookReservationWhenSpotIsAvailableAndHasTheHighestPriority() {
+    fun `book reservation when first priority is available`() {
         val request = ReservationRequest(
             userId = "user 1",
             startTimestamp = LocalDateTime.now().plusHours(10).toInstant(ZoneOffset.UTC).toEpochMilli(),
@@ -138,7 +137,7 @@ class ReservationServiceTest {
     }
 
     @Test
-    fun canBookReservationWithNextPriorityWhenTheHighestPriorityIsOccupied() {
+    fun `book reservation with next priority when first priority is unavailable`() {
         val request = ReservationRequest(
             userId = "user 1",
             startTimestamp = LocalDateTime.now().plusHours(10).toInstant(ZoneOffset.UTC).toEpochMilli(),
@@ -184,7 +183,7 @@ class ReservationServiceTest {
     }
 
     @Test
-    fun canBookMultipleReservationBySameUserIfNoTimeOverlap() {
+    fun `book reservation multiple time by same user`() {
         every {
             reservationRepository.existsByUserIdAndTimeOverlap(
                 "user 1",
@@ -240,9 +239,35 @@ class ReservationServiceTest {
     }
 
     @Test
-    fun shouldThrowExceptionWhenSpotIsNotAvailable() {
-        // given endTimestamp greater than startTimestamp
+    fun `throw exception when no slots are available`() {
+        val request = ReservationRequest(
+            userId = "user 1",
+            startTimestamp = LocalDateTime.now().plusHours(20).toInstant(ZoneOffset.UTC).toEpochMilli(),
+            endTimestamp = LocalDateTime.now().plusHours(28).toInstant(ZoneOffset.UTC).toEpochMilli())
 
-        // throw exception
+        every {
+            reservationRepository.existsByUserIdAndTimeOverlap(
+                "user 1",
+                request.startTimestamp,
+                request.endTimestamp
+            )
+        } returns false
+
+        (1..3).forEach {
+            every {
+                reservationRepository.existsBySpotIdAndTimeOverlap(
+                    eq(it),
+                    request.startTimestamp,
+                    request.endTimestamp
+                )
+            } returns true
+        }
+
+        assertFailsWith<ResponseStatusException> (
+            message = "Unfortunately, No spots are available",
+            block = {
+                service.createReservation(1, testSpots, request)
+            }
+        )
     }
 }
