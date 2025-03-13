@@ -4,6 +4,8 @@ info:
   version: 1.0.0
 tags:
    - name: configuration
+servers:
+  - url: http://localhost:4010
 paths:
   /api/parking-lots/{parking-lot-id}:
     get:
@@ -27,6 +29,9 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ParkingSpot'
+              examples:
+                Example Response:
+                  $ref: '#/components/examples/getParkingSpotsByLotResponse'
 components:
   schemas:
     ParkingSpot:
@@ -44,3 +49,307 @@ components:
       required:
         - id
         - priority
+  examples:
+    getParkingSpotsByLotResponse:
+      value:
+        - id: 0
+          name: spot 0
+          priority: 1
+        - id: 1
+          name: spot 1
+          priority: 23
+        - id: 2
+          name: spot 2
+          priority: 28
+        - id: 3
+          name: spot 3
+          priority: 36
+        - id: 4
+          name: spot 4
+          priority: 20
+        - id: 5
+          name: spot 5
+          priority: 43
+        - id: 6
+          name: spot 6
+          priority: 8
+        - id: 7
+          name: spot 7
+          priority: 4
+        - id: 8
+          name: spot 8
+          priority: 3
+        - id: 9
+          name: spot 9
+          priority: 25
+        - id: 10
+          name: spot 10
+          priority: 26
+        - id: 11
+          name: spot 11
+          priority: 15
+        - id: 12
+          name: spot 12
+          priority: 38
+        - id: 13
+          name: spot 13
+          priority: 6
+        - id: 14
+          name: spot 14
+          priority: 37
+        - id: 15
+          name: spot 15
+          priority: 46
+        - id: 16
+          name: spot 16
+          priority: 36
+        - id: 17
+          name: spot 17
+          priority: 46
+        - id: 18
+          name: spot 18
+          priority: 44
+        - id: 19
+          name: spot 19
+          priority: 31
+        - id: 20
+          name: spot 20
+          priority: 30
+        - id: 21
+          name: spot 21
+          priority: 10
+        - id: 22
+          name: spot 22
+          priority: 2
+        - id: 23
+          name: spot 23
+          priority: 22
+        - id: 24
+          name: spot 24
+          priority: 5
+        - id: 25
+          name: spot 25
+          priority: 10
+        - id: 26
+          name: spot 26
+          priority: 45
+        - id: 27
+          name: spot 27
+          priority: 43
+        - id: 28
+          name: spot 28
+          priority: 11
+        - id: 29
+          name: spot 29
+          priority: 42
+        - id: 30
+          name: spot 30
+          priority: 44
+        - id: 31
+          name: spot 31
+          priority: 1
+        - id: 32
+          name: spot 32
+          priority: 47
+        - id: 33
+          name: spot 33
+          priority: 25
+        - id: 34
+          name: spot 34
+          priority: 0
+        - id: 35
+          name: spot 35
+          priority: 47
+        - id: 36
+          name: spot 36
+          priority: 18
+        - id: 37
+          name: spot 37
+          priority: 20
+        - id: 38
+          name: spot 38
+          priority: 48
+        - id: 39
+          name: spot 39
+          priority: 0
+        - id: 40
+          name: spot 40
+          priority: 1
+        - id: 41
+          name: spot 41
+          priority: 1
+        - id: 42
+          name: spot 42
+          priority: 15
+        - id: 43
+          name: spot 43
+          priority: 16
+        - id: 44
+          name: spot 44
+          priority: 34
+        - id: 45
+          name: spot 45
+          priority: 34
+        - id: 46
+          name: spot 46
+          priority: 4
+        - id: 47
+          name: spot 47
+          priority: 43
+        - id: 48
+          name: spot 48
+          priority: 44
+        - id: 49
+          name: spot 49
+          priority: 43
+        - id: 50
+          name: spot 50
+          priority: 36
+        - id: 51
+          name: spot 51
+          priority: 0
+        - id: 52
+          name: spot 52
+          priority: 0
+        - id: 53
+          name: spot 53
+          priority: 42
+        - id: 54
+          name: spot 54
+          priority: 48
+        - id: 55
+          name: spot 55
+          priority: 1
+        - id: 56
+          name: spot 56
+          priority: 47
+        - id: 57
+          name: spot 57
+          priority: 16
+        - id: 58
+          name: spot 58
+          priority: 33
+        - id: 59
+          name: spot 59
+          priority: 9
+        - id: 60
+          name: spot 60
+          priority: 44
+        - id: 61
+          name: spot 61
+          priority: 22
+        - id: 62
+          name: spot 62
+          priority: 35
+        - id: 63
+          name: spot 63
+          priority: 21
+        - id: 64
+          name: spot 64
+          priority: 1
+        - id: 65
+          name: spot 65
+          priority: 35
+        - id: 66
+          name: spot 66
+          priority: 1
+        - id: 67
+          name: spot 67
+          priority: 24
+        - id: 68
+          name: spot 68
+          priority: 19
+        - id: 69
+          name: spot 69
+          priority: 48
+        - id: 70
+          name: spot 70
+          priority: 28
+        - id: 71
+          name: spot 71
+          priority: 36
+        - id: 72
+          name: spot 72
+          priority: 3
+        - id: 73
+          name: spot 73
+          priority: 4
+        - id: 74
+          name: spot 74
+          priority: 8
+        - id: 75
+          name: spot 75
+          priority: 40
+        - id: 76
+          name: spot 76
+          priority: 14
+        - id: 77
+          name: spot 77
+          priority: 13
+        - id: 78
+          name: spot 78
+          priority: 13
+        - id: 79
+          name: spot 79
+          priority: 41
+        - id: 80
+          name: spot 80
+          priority: 44
+        - id: 81
+          name: spot 81
+          priority: 45
+        - id: 82
+          name: spot 82
+          priority: 2
+        - id: 83
+          name: spot 83
+          priority: 3
+        - id: 84
+          name: spot 84
+          priority: 11
+        - id: 85
+          name: spot 85
+          priority: 24
+        - id: 86
+          name: spot 86
+          priority: 37
+        - id: 87
+          name: spot 87
+          priority: 25
+        - id: 88
+          name: spot 88
+          priority: 45
+        - id: 89
+          name: spot 89
+          priority: 44
+        - id: 90
+          name: spot 90
+          priority: 5
+        - id: 91
+          name: spot 91
+          priority: 20
+        - id: 92
+          name: spot 92
+          priority: 38
+        - id: 93
+          name: spot 93
+          priority: 5
+        - id: 94
+          name: spot 94
+          priority: 25
+        - id: 95
+          name: spot 95
+          priority: 18
+        - id: 96
+          name: spot 96
+          priority: 14
+        - id: 97
+          name: spot 97
+          priority: 9
+        - id: 98
+          name: spot 98
+          priority: 12
+        - id: 99
+          name: spot 99
+          priority: 35
+        
