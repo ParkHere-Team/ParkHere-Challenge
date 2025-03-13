@@ -6,6 +6,7 @@ import eu.parkHere.challenge.model.ReservationResponse
 import eu.parkHere.challenge.reservations.entity.Reservation
 import eu.parkHere.challenge.reservations.exceptions.*
 import eu.parkHere.challenge.reservations.repository.ReservationRepository
+import eu.parkHere.challenge.utils.millisecondToInstant
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -17,6 +18,7 @@ class ReservationService(
     companion object {
         private const val MAX_RESERVATION_DURATION = 7 * 24 * 60 * 60 * 1000L // 1 week
     }
+
     /**
      * Creates a reservation for a parking spot.
      *
@@ -26,10 +28,16 @@ class ReservationService(
      * @return The reservation response with reservation id.
      */
     @Transactional
-    fun createReservation(parkingLotId: Int, spots: List<ParkingSpot>, reservationRequest: ReservationRequest): ReservationResponse {
+    fun createReservation(
+        parkingLotId: Int,
+        spots: List<ParkingSpot>,
+        reservationRequest: ReservationRequest
+    ): ReservationResponse {
         validateTimeRange(reservationRequest.startTimestamp, reservationRequest.endTimestamp)
-        val startTimeAsInstant = Instant.ofEpochMilli(reservationRequest.startTimestamp)
-        val endTimeAsInstant = Instant.ofEpochMilli(reservationRequest.endTimestamp)
+        val startTimeAsInstant =
+            millisecondToInstant(reservationRequest.startTimestamp)
+        val endTimeAsInstant =
+            millisecondToInstant(reservationRequest.endTimestamp)
         validateUserAvailability(reservationRequest.userId, startTimeAsInstant, endTimeAsInstant)
         val availableSpot = findAvailableSpot(spots, startTimeAsInstant, endTimeAsInstant)
             ?: throw NoSpotsAvailableException()
@@ -43,7 +51,12 @@ class ReservationService(
                 endTimestamp = Instant.ofEpochMilli(reservationRequest.endTimestamp)
             )
         )
-        return ReservationResponse(savedReservation.id!!, availableSpot.id, reservationRequest.startTimestamp, reservationRequest.endTimestamp)
+        return ReservationResponse(
+            savedReservation.id!!,
+            availableSpot.id,
+            reservationRequest.startTimestamp,
+            reservationRequest.endTimestamp
+        )
     }
 
     private fun validateTimeRange(startTimestamp: Long, endTimestamp: Long) {
