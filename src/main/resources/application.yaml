@@ -5,9 +5,9 @@ spring:
     hibernate:
       ddl-auto: update
   datasource:
-    url: jdbc:postgresql://localhost:5432/reservation-database
-    username: k4tfXN9OAGFXWE
-    password: XrKO6bek6ojnBM
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/reservation-database}
+    username: ${DATABASE_USERNAME:k4tfXN9OAGFXWE}
+    password: ${DATABASE_PASSWORD:XrKO6bek6ojnBM}
     
 configuration-service:
   endpoint: ${CONFIGURATION_SERVICE_ENDPOINT:http://localhost:4010}
