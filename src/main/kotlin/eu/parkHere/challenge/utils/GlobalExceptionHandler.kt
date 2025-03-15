@@ -1,4 +1,4 @@
-package utils
+package eu.parkHere.challenge.utils
 
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.ControllerAdvice

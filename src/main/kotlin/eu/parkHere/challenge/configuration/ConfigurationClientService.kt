@@ -2,8 +2,8 @@ package eu.parkHere.challenge.configuration
 
 import eu.parkHere.challenge.api.ConfigurationApi
 import eu.parkHere.challenge.model.ParkingSpot
+import eu.parkHere.challenge.utils.logger
 import org.springframework.stereotype.Service
-import utils.logger
 
 @Service
 class ConfigurationClientService(private val configurationApi: ConfigurationApi) {
