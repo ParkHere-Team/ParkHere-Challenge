@@ -10,7 +10,7 @@ Unauthorized copying of any content of this project via any medium is strictly p
 
 Welcome, and thanks for taking the time to work on this challenge!
 
-Please read this document in full before starting. Your goal is to implement a parking reservation system composed of loosely coupled microservices. The solution should reflect the general principles of high-demand distributed systems: **scalability**, **availability**, and **reliability**.
+Please read this document in full before starting. Your goal is to implement a parking reservation system composed of loosely coupled microservices. The solution should reflect the general principles of high-demand distributed systems: **scalability**, **availability**, **reliability** and **idempotency**.
 
 ### Requirements
 
@@ -22,6 +22,7 @@ Please read this document in full before starting. Your goal is to implement a p
 
 - You are free to use any application framework (e.g. Quarkus, Spring Boot).
 - Deploying your solution on **AWS** using any suitable service (e.g. Lambda, ECS, EKS) is considered an advantage.
+- Assume requests are pre-authenticated
 - You are free to choose any database or messaging middleware that best fits the requirements. We'd love to hear your reasoning, so please justify your choices briefly in a README.
 
 ---
@@ -104,22 +105,23 @@ POST /api/parking-lots/{parking-lot-id}/reservations
 
 **Error responses:**
 
-- `400 Bad Request` – if `startTimestamp >= endTimestamp` or required fields are missing.
+- `400 Bad Request` – if `startTimestamp >= endTimestamp`, timestamps are in the past, or required fields are missing.
 - `409 Conflict` – if no spots are available for the requested time frame.
 
 #### Business Rules
 
 1. **Reservations must be persisted permanently** (i.e. they must survive service restarts).
 2. `startTimestamp` must be strictly less than `endTimestamp`. Both are Unix timestamps in milliseconds (UTC).
-3. A user may hold multiple reservations, **as long as their time frames do not overlap**.
-4. **No two reservations may share the same spot if their time frames overlap.** Two time frames overlap if one starts before the other ends.
-5. When assigning a spot, the service must select the **available spot with the lowest priority value**. If all spots are taken for the requested time frame, return `409` with a descriptive error message.
+3. Timestamps must not be in the past
+4. A user may hold multiple reservations, **as long as their time frames do not overlap**.
+5. **No two reservations may share the same spot if their time frames overlap.** Two time frames overlap if one starts before the other ends.
+6. When assigning a spot, the service must select the **available spot with the lowest priority value**. If all spots are taken for the requested time frame, return `409` with a descriptive error message.
 
 ---
 
 ## Part 2: System Design (Required)
 
-Using a diagramming tool of your choice (e.g. [draw.io](https://draw.io), Lucidchart, Excalidraw), sketch out the major components of your system. This could include the microservices and how they interact, your database choices, and any additional infrastructure you'd consider relevant (e.g. an API gateway, message broker, or cache). Feel free to add any notes explaining your thinking.
+Using a diagramming tool of your choice (e.g. [draw.io](https://draw.io), Lucidchart, Excalidraw), sketch out the major components of your system,. This must include the microservices and how they interact, your database choices, and any additional infrastructure you'd consider relevant (e.g. an API gateway, message broker, or cache). Feel free to add any notes explaining your thinking.
 
 Please include an image of your diagram in the repository, or share a link to the online tool.
 
