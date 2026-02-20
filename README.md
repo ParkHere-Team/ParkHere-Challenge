@@ -1,128 +1,170 @@
-# Reservation Code Challenge
+# Parking Reservation System – Code Challenge
 
+**LICENSE**
+Copyright © ParkHere GmbH – All Rights Reserved.
+Unauthorized copying of any content of this project via any medium is strictly prohibited. Proprietary and confidential.
 
-ParkHere code assignment
-LICENSE
+---
 
-Copyright (C) ParkHere GmbH - All Rights Reserved
-Unauthorized copying of any content of this project via any medium is strictly prohibited, Proprietary and confidential.
+## Introduction
 
-Introduction
-=============================
-Hello and welcome!
+Welcome, and thanks for taking the time to work on this challenge!
 
-As part of our interview process, we would like you to complete a programming assignment. It presents a hypothetical situation which resembles how you could be solving problems at ParkHere. 
+Please read this document in full before starting. Your goal is to implement a parking reservation system composed of loosely coupled microservices. The solution should reflect the general principles of high-demand distributed systems: **scalability**, **availability**, and **reliability**.
 
-Please read the whole description thoroughly, then create a program to solve the problem at hand.
-Please use Java 11+ or Kotlin for your implementation. The application must run and your solution should provide sufficient evidence that it is complete.
+### Requirements
 
-### Note 1: 
-Feel free to use any application frameworks such as Spring Boot or DropWizard for your implementation, however developing the solution with AWS lambda functions will be considered as an extra advantage for you.
+- Use **Java 11+** or **Kotlin**.
+- The application must build and run successfully.
+- Your solution must include sufficient tests or demonstration to confirm correctness.
 
-### Note 2: 
-You are also free to use any database, middleware (messaging platform, etc.) of your choice which suits best for your application according to the given requirements.
+### Notes
 
+- You are free to use any application framework (e.g. Quarkus, Spring Boot).
+- Deploying your solution on **AWS** using any suitable service (e.g. Lambda, ECS, EKS) is considered an advantage.
+- You are free to choose any database or messaging middleware that best fits the requirements. We'd love to hear your reasoning, so please justify your choices briefly in a README.
 
-## Parking Reservation System
+---
 
-ParkHere has decided to develop a product that allows users to reserve parking spots of a car park through our mobile app before they get there. Therefore, when they arrive they would know exactly where to park. We want a solution built based on loosely coupled microservices which follow the general principles of high-demand distributed systems such as scalability, availability and reliability.
+## Context
 
-We would like to run our business in many countries - therefore, the system should to be scalable according to our customer demands. We’re also concerned about the performance and therefore aim for a 500ms response time from our reservation system.
+ParkHere is building a product that allows users to reserve parking spots in a car park via a mobile app before they arrive. Upon arrival, the user is directed to their reserved spot without any manual check-in.
 
-## Part 1: Parking Reservation (coding)
+The target response time for the reservation service is **≤ 500ms** under normal load, and the system must be designed to scale across multiple countries and car parks.
 
-The system is comprised of different services.
+---
 
-1. a `configuration-microservice` give you access to a list of parking spots in a given lot.
+## Part 1: Reservation Service (Required)
 
-The service endpoint is `GET /api/parking-lots/{parking-lot-id}` and will return a list of available parking spots for a given location as below:
+The system involves two microservices. You must **implement** the `reservation-service`. The `configuration-microservice` is **provided** — you don't need to implement it, but please define the interface your implementation expects from it (see section 1.1 below).
+
+### 1.1 Configuration Microservice (Provided)
+
+This service exposes parking spot data for a given car park.
+
+**Endpoint:**
 
 ```
+GET /api/parking-lots/{parking-lot-id}
+```
+
+**Response:**
+
+```json
 [
-    {
-        id: 1,
-        spotName: "spot1",
-        priority: 1
-    },
-    ...
+  {
+    "id": 1,
+    "spotName": "spot1",
+    "priority": 1
+  }
 ]
 ```
 
-You can find a json file attached to use as a response example.
+- `id`: unique identifier of the parking spot.
+- `spotName`: human-readable label for the spot.
+- `priority`: integer used to rank spots for assignment. **Lower value = higher priority** (i.e. priority `1` is assigned before priority `2`).
 
-2. a `reservation-service` creates reservations in the a parking lot based on the list received.
+A sample JSON response file is included in the repository.
 
-You must implement the service exposing the `POST` request described below.
+> **If you consume this service**, please specify the full interface you expect from it (endpoint, request/response contract, and relevant error cases) in your README or as an interface/contract file.
 
-`POST 	/api/parking-lots/{parking-lot-id}/reservations`
+---
+
+### 1.2 Reservation Service (To Be Implemented)
+
+Implement a service that exposes the following endpoint:
+
+**Endpoint:**
 
 ```
-ReservationRequest: {
-    "user-id": "john@park-here.eu",
-    "startTimestamp": 1737586800000,
-    "endTimestamp": 1737627502000
-}
+POST /api/parking-lots/{parking-lot-id}/reservations
+```
 
-ReservationResponse: {
-    "id": 123,
-    "spotId": 1,
-    "startTimestamp": 1737586800000,
-    "endTimestamp": 1737627502000,
+**Request body:**
+
+```json
+{
+  "userId": "john@park-here.eu",
+  "startTimestamp": 1737586800000,
+  "endTimestamp": 1737627502000
 }
 ```
 
-The reservation service must meet the following requirements:
+**Success response** (`201 Created`):
 
-- Reservations should be stored permanently.
-- Users should be able to reserve for any time frame with given `startTimestamp` less than `endTimestamp`. 
-- Multiple reservations for one user are possible unless the time frames overlap
-- No two users can reserve the same spot for overlapping timespans
-- When making a reservation, the user should be given the spot with the highest priority, or informed if no spots are available
+```json
+{
+  "id": 123,
+  "spotId": 1,
+  "userId": "john@park-here.eu",
+  "startTimestamp": 1737586800000,
+  "endTimestamp": 1737627502000
+}
+```
 
-### Valid assumptions:
+**Error responses:**
 
-The below microservices are provided to you as an option, so you may use any of them within your solution if you deem them helpful. There is no need implement them.
+- `400 Bad Request` – if `startTimestamp >= endTimestamp` or required fields are missing.
+- `409 Conflict` – if no spots are available for the requested time frame.
 
-However, you do need to specify the operations’ signature for that particular microservice if you decided to use it in your solution so we would know what would you expect from that microservice in order to solve the task at hand.
+#### Business Rules
 
+1. **Reservations must be persisted permanently** (i.e. they must survive service restarts).
+2. `startTimestamp` must be strictly less than `endTimestamp`. Both are Unix timestamps in milliseconds (UTC).
+3. A user may hold multiple reservations, **as long as their time frames do not overlap**.
+4. **No two reservations may share the same spot if their time frames overlap.** Two time frames overlap if one starts before the other ends.
+5. When assigning a spot, the service must select the **available spot with the lowest priority value**. If all spots are taken for the requested time frame, return `409` with a descriptive error message.
 
-- The information about parking lot such as its capacity, location and etc. are all defined within `configuration-microservice` 
-- No security mechanism (`authentication` and `authorization`) would be needed for this code assignment
-- Entities can be created with minimum required properties
+---
 
-## Part 2: System Design
+## Part 2: System Design (Required)
 
-We would like you to use a drawing tool such as https://www.draw.io to illustrate your design for the major components of such a system in terms of microservices, their interaction styles, preferred databases and any other components you might need for your solution. 
+Using a diagramming tool of your choice (e.g. [draw.io](https://draw.io), Lucidchart, Excalidraw), sketch out the major components of your system. This could include the microservices and how they interact, your database choices, and any additional infrastructure you'd consider relevant (e.g. an API gateway, message broker, or cache). Feel free to add any notes explaining your thinking.
 
-## Part 3: Deployment (Optional - Bonus)
+Please include an image of your diagram in the repository, or share a link to the online tool.
 
-As a bonus, we would like you to describe a deployment plan for you solution, leveraging a cloud provider of your choice.
+---
 
-AWS is preferred, but other providers are acceptable.
+## Part 3: Deployment Plan (Optional – Bonus)
 
-At ParkHere, we use Terraform. 
+If you'd like to go the extra mile, describe a deployment plan for your solution on a cloud provider. **AWS is preferred.**
 
+At ParkHere, we use **Terraform** for infrastructure provisioning. A strong bonus submission would include:
 
-## Tips ##
+- A Terraform configuration (or a clearly structured outline) covering the core infrastructure components.
+- A brief explanation of your deployment strategy (e.g. ECS, EKS, Lambda) and why it suits this use case.
+- Some consideration of environment separation (e.g. staging vs. production).
 
-* We value writing clean code. Your code will be reviewed by our developers, so make sure it is easy to follow and well-structured.
+---
 
-* Don't feel the need to over-engineer your solution. We don't expect you to build an entire system that can scale to billions of events. Your solution should be tailored to the problem statement.
+## Evaluation Criteria
 
-## How to submit the solution
+Here's what we'll be looking at when reviewing your submission:
 
-As of now, you have given access to the private repository for this challenge.
-All you have to do is to fork this repository to a new private repository in the git provider of your choice.
+- **Correctness** – business rules are properly enforced.
+- **Code quality** – clean, readable, well-structured, and maintainable code.
+- **Design decisions** – appropriate use of patterns, data models, and service boundaries.
+- **Concurrency handling** – correct behaviour under concurrent reservation requests.
+- **Documentation** – a clear README covering setup, design decisions, and assumptions.
 
-Once you’re done with the implementation, kindly invite our colleagues to review your solution.
+> Don't feel the need to over-engineer. A focused, well-reasoned solution is valued far more than an unnecessarily complex one.
 
-* andac.kurun@park-here.eu
-* jakob.mezger@park-here.eu
-* mirzet.brkic@park-here.eu
-* massimiliano.gerardi@park-here.eu
+---
 
-Please make sure you include a high quality image of your drawing within the solution or provide a link if you’re using an online tool.
+## Submission Instructions
 
-Good luck!  
-ParkHere Dev Team
+1. Fork this private repository to a **new private repository** on a Git provider of your choice.
+2. Complete your implementation in the forked repository.
+3. Include the architecture diagram (image or link) in the repository.
+4. Include a `README.md` with:
+   - Setup and run instructions.
+   - A summary of your design decisions and trade-offs.
+   - Any assumptions you made along the way.
+5. Once you're done, grant review access to the following colleagues:
+   - andac.kurun@park-here.eu
+   - jakob.mezger@park-here.eu
+   - mirzet.brkic@park-here.eu
+   - massimiliano.gerardi@park-here.eu
 
+We're looking forward to seeing your solution — good luck!
+**ParkHere Engineering Team**
