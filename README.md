@@ -162,7 +162,7 @@ Here's what we'll be looking at when reviewing your submission:
    - Any assumptions you made along the way.
 5. Once you're done, grant review access to the following colleagues:
    - andac.kurun@park-here.eu
-   - jakob.mezger@park-here.eu
+   - vostan.azatyan@park-here.eu
    - mirzet.brkic@park-here.eu
    - massimiliano.gerardi@park-here.eu
 
